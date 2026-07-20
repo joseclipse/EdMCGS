@@ -254,5 +254,3 @@ class ControlNodeDeform(nn.Module):
         len1 = edges1.norm(dim=-1)                                       # (M,K)
         len2 = edges2.norm(dim=-1)
         return ((len1 - len2) ** 2).mean()
-        # ── 备用：SC-GS λ 退火表（若 jump 因 TLI 回退 ≥0.5dB，首选改这里）──
-        # landmarks = [1e-4, 1e-4, 1e-5, 1e-5, 0]; steps = [0, 5000, 10000, 20000, 20001]
