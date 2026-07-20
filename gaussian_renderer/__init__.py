@@ -30,7 +30,7 @@ def quaternion_multiply(q1, q2):
 
 
 def render(viewpoint_camera, pc: GaussianModel, pipe, bg_color: torch.Tensor, d_xyz, d_rotation, d_scaling, is_6dof=False,
-           scaling_modifier=1.0, override_color=None, detach_color=False, render_omega=False):
+           scaling_modifier=1.0, override_color=None, detach_color=False):
     """
     Render the scene.
 
@@ -74,8 +74,7 @@ def render(viewpoint_camera, pc: GaussianModel, pipe, bg_color: torch.Tensor, d_
             means3D = from_homogenous(
                 torch.bmm(d_xyz, to_homogenous(pc.get_xyz).unsqueeze(-1)).squeeze(-1))
     else:
-        # ω 门控形变 μ=μ_can+ω·Δμ；warm_up 期 d_* 为标量 0.0，跳过门控（避免广播错）
-        means3D = pc.get_xyz + (pc.get_omega * d_xyz if torch.is_tensor(d_xyz) else d_xyz)
+        means3D = pc.get_xyz + d_xyz
     opacity = pc.get_opacity
 
     # If precomputed 3d covariance is provided, use it. If not, then it will be computed from
@@ -86,17 +85,14 @@ def render(viewpoint_camera, pc: GaussianModel, pipe, bg_color: torch.Tensor, d_
     if pipe.compute_cov3D_python:
         cov3D_precomp = pc.get_covariance(scaling_modifier)
     else:
-        scales = pc.get_scaling + (pc.get_omega * d_scaling if torch.is_tensor(d_scaling) else d_scaling)
-        rotations = pc.get_rotation + (pc.get_omega * d_rotation if torch.is_tensor(d_rotation) else d_rotation)
+        scales = pc.get_scaling + d_scaling
+        rotations = pc.get_rotation + d_rotation
 
     # If precomputed colors are provided, use them. Otherwise, if it is desired to precompute colors
     # from SHs in Python, do it. If not, then SH -> RGB conversion will be done by rasterizer.
     shs = None
     colors_precomp = None
-    if render_omega:
-        # ω 图：颜色=ω（detach，作事件 loss 的能量再平衡权重）；几何沿用当前形变 → 与事件渲染严格对齐
-        colors_precomp = pc.get_omega.detach().expand(-1, 3).contiguous()
-    elif colors_precomp is None:
+    if colors_precomp is None:
         if pipe.convert_SHs_python:
             _features = pc.get_features.detach() if detach_color else pc.get_features
             shs_view = _features.transpose(1, 2).view(-1, 3, (pc.max_sh_degree + 1) ** 2)
