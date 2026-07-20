@@ -9,7 +9,6 @@ from utils.general_utils import get_expon_lr_func
 
 class DeformModel:
     def __init__(self, is_blender=False, is_6dof=False, deform_type='node'):
-        # deform_type: 'node' = 控制点+LBS（B 主线，ω 正确载体）；'mlp' = 原逐高斯（退回基线用）
         if deform_type == 'node':
             self.deform = ControlNodeDeform(is_blender=is_blender, is_6dof=is_6dof).cuda()
         else:
@@ -17,14 +16,18 @@ class DeformModel:
         self.optimizer = None
         self.spatial_lr_scale = 5
 
-    def step(self, xyz, time_emb):
-        return self.deform(xyz, time_emb)
+    def step(self, xyz, time_emb, **kwargs):
+        return self.deform(xyz, time_emb, **kwargs)
 
-    def arap_loss(self, time_emb, **kwargs):
-        # 仅 node 型支持；mlp 型返回 0（让 train_gui 不分支也能调用）
-        if hasattr(self.deform, 'arap_loss'):
-            return self.deform.arap_loss(time_emb, **kwargs)
+    def tli_loss(self, time_emb, **kwargs):
+        if hasattr(self.deform, 'tli_loss'):
+            return self.deform.tli_loss(time_emb, **kwargs)
         return torch.zeros((), device=time_emb.device if torch.is_tensor(time_emb) else 'cuda')
+
+    def markov_smooth_loss(self):
+        if hasattr(self.deform, 'markov_smooth_loss'):
+            return self.deform.markov_smooth_loss()
+        return torch.zeros((), device='cuda')
 
     def train_setting(self, training_args):
         l = [
@@ -50,7 +53,7 @@ class DeformModel:
         else:
             loaded_iter = iteration
         weights_path = os.path.join(model_path, "deform/iteration_{}/deform.pth".format(loaded_iter))
-        self.deform.load_state_dict(torch.load(weights_path))
+        self.deform.load_state_dict(torch.load(weights_path), strict=False)
 
     def update_learning_rate(self, iteration):
         for param_group in self.optimizer.param_groups:
