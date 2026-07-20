@@ -20,6 +20,7 @@ python train_gui.py -s ../PATH_TO_YOUR_DATASET/SunFlowers -m ../OUTPUT_PATH --ev
 
 ## Acknowledgement
 
+```
 @article{kerbl20233d,
   title={3d gaussian splatting for real-time radiance field rendering.},
   author={Kerbl, Bernhard and Kopanas, Georgios and Leimk{\"u}hler, Thomas and Drettakis, George},
@@ -29,10 +30,13 @@ python train_gui.py -s ../PATH_TO_YOUR_DATASET/SunFlowers -m ../OUTPUT_PATH --ev
   pages={139--1},
   year={2023}
 }
+```
 
+```
 @article{yang2023deformable3dgs,
     title={Deformable 3D Gaussians for High-Fidelity Monocular Dynamic Scene Reconstruction},
     author={Yang, Ziyi and Gao, Xinyu and Zhou, Wen and Jiao, Shaohui and Zhang, Yuqing and Jin, Xiaogang},
     journal={arXiv preprint arXiv:2309.13101},
     year={2023}
 }
+```
